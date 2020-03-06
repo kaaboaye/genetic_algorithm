@@ -9,9 +9,9 @@ use generate::generate;
 #[structopt(name = "Genet", about = "Genetic algorithm")]
 enum Opt {
     Generate {
-        number_of_objects: u64,
-        max_weight: u64,
-        max_size: u64,
+        number_of_objects: u32,
+        max_weight: u32,
+        max_size: u32,
         output_file: String,
     }
 }
