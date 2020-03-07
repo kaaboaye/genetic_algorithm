@@ -2,3 +2,4 @@
 **/*.rs.bk
 .idea
 genet.iml
+scenario.txt
