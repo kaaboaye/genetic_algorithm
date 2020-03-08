@@ -1,6 +1,8 @@
 extern crate rand;
 extern crate nalgebra as na;
 extern crate nalgebra_glm as glm;
+extern crate crossbeam;
+extern crate crossbeam_utils;
 
 mod consts;
 mod population;

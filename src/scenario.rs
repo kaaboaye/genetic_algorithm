@@ -31,8 +31,8 @@ impl Scenario {
 
         let mut rng = thread_rng();
 
-        let weights = Uniform::from(1..(10 * max_weight / number_of_objects));
-        let sizes = Uniform::from(1..(10 * max_size / number_of_objects));
+        let weights = Uniform::from(1..(5 * max_weight / number_of_objects));
+        let sizes = Uniform::from(1..(5 * max_size / number_of_objects));
         let costs = Uniform::from(1..number_of_objects);
 
         let mut weight_sum = 0;

@@ -9,5 +9,7 @@ edition = "2018"
 [dependencies]
 structopt='0.3.11'
 rand = "0.7.3"
-nalgebra = "0.18"
-nalgebra-glm = "0.3"
+nalgebra = "0.20"
+nalgebra-glm = "0.6"
+crossbeam = '0.7'
+crossbeam-utils = '0.7'
