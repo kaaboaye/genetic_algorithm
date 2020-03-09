@@ -66,4 +66,58 @@ impl Population {
             costs
         }).unwrap()
     }
+
+    pub fn tournament(&self, scores: &DVector<Number>, tournament_size: usize) -> usize {
+        let mut selector = random_vec(
+            tournament_size,
+            self.population.nrows()
+        );
+
+        // Filter selected individuals
+        selector.component_mul_assign(scores);
+        let (best_idx, _) = selector.argmax();
+        best_idx
+    }
+}
+
+/// Returns DVector of zeros and ones.
+/// It will contain randomly distributed `desired_positives` of ones (1).
+/// The rest of values will be 0.
+/// It assumes that `desired_positives` is greater then 0.
+fn random_vec(desired_positives: usize, size: usize) -> DVector<Number> {
+    debug_assert_ne!(desired_positives, 0);
+
+    let mut rng = thread_rng();
+    let mut res: Vec<Number> = vec![0; size];
+    let mut positives: usize = 0;
+
+    let slots = Uniform::from(0..size);
+
+    loop {
+        let idx = slots.sample(&mut rng);
+
+        // If position is already chosen it will subtract 1
+        // which will be added back later.
+        // If position was not used before it will subtract 0
+        // which later will be incremented by 1 increasing
+        // the total number of selected slots.
+        //
+        // It is equivalent to
+        // `if res[idx] == 0 { positives += 1 }`
+        // but this will be faster because no branching is happening in this implementation.
+        //
+        // Since it operates on unsigned number it takes an assumption that
+        // `positives -= res[idx]` will never produce a negative result.
+        // This assumption is true because `positives` has to have at least value of `1`
+        // in order to some conflict to occur.
+        // In other words positives cannot find duplicate if there are no positive values.
+        positives += 1;
+        positives -= res[idx] as usize;
+
+        res[idx] = 1;
+
+        if positives == desired_positives { break; }
+    }
+
+    DVector::<Number>::from_vec(res)
 }
