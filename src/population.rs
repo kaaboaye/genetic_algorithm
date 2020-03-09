@@ -19,14 +19,14 @@ impl Population {
             .into_par_iter()
             .map_init(
                 || thread_rng(),
-                |mut rng, _| bool_int.sample(&mut rng)
+                |mut rng, _| bool_int.sample(&mut rng),
             )
             .collect();
 
         let population = DMatrix::<Number>::from_vec(
             population_size,
             number_of_objects,
-            vec
+            vec,
         );
 
         Population { population }
@@ -36,18 +36,20 @@ impl Population {
         thread::scope(|scope| {
             let weights_thread = scope.spawn(|_| {
                 let mut weights = &self.population * &scenario.weights;
-                for elem in weights.iter_mut() {
+                let vec = unsafe { weights.data.as_vec_mut() };
+                vec.into_par_iter().for_each(|elem| {
                     *elem = (*elem <= scenario.max_weight) as Number;
-                }
+                });
 
                 weights
             });
 
             let sizes_thread = scope.spawn(|_| {
                 let mut sizes = &self.population * &scenario.sizes;
-                for elem in sizes.iter_mut() {
+                let vec = unsafe { sizes.data.as_vec_mut() };
+                vec.into_par_iter().for_each(|elem| {
                     *elem = (*elem <= scenario.max_size) as Number;
-                }
+                });
 
                 sizes
             });
