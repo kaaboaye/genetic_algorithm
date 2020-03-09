@@ -13,3 +13,4 @@ nalgebra = "0.20"
 nalgebra-glm = "0.6"
 crossbeam = '0.7'
 crossbeam-utils = '0.7'
+rayon = '1.3'

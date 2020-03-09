@@ -4,6 +4,7 @@ use rand::distributions::{Uniform, Distribution};
 use rand::thread_rng;
 use crate::scenario::Scenario;
 use crossbeam_utils::thread;
+use rayon::prelude::*;
 
 #[derive(Debug)]
 pub struct Population {
@@ -12,14 +13,20 @@ pub struct Population {
 
 impl Population {
     pub fn new(population_size: usize, number_of_objects: usize) -> Population {
-        let mut rng = thread_rng();
         let bool_int = Uniform::from(0..2 as Number);
 
-        // TODO bottle neck
-        let population = DMatrix::<Number>::from_fn(
+        let vec = (0..(population_size * number_of_objects))
+            .into_par_iter()
+            .map_init(
+                || thread_rng(),
+                |mut rng, _| bool_int.sample(&mut rng)
+            )
+            .collect();
+
+        let population = DMatrix::<Number>::from_vec(
             population_size,
             number_of_objects,
-            |_, _| bool_int.sample(&mut rng),
+            vec
         );
 
         Population { population }
