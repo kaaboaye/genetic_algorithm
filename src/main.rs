@@ -6,7 +6,9 @@ extern crate crossbeam_utils;
 extern crate rayon;
 
 mod consts;
+mod individual;
 mod population;
+mod population_config;
 mod scenario;
 mod train;
 
