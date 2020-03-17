@@ -29,16 +29,20 @@ fn crossover(
 ) -> Vec<Number> {
     // TODO - losowanie crossover_portion
 
-    let parent1 = parent1.iter().map(|n| *n);
-    let parent2 = parent2.iter().map(|n| *n);
+    let parent1_iter = parent1.iter().map(|n| *n);
+    let parent2_iter = parent2.iter().map(|n| *n);
 
     if config.crossover_probability < rng.gen::<f64>() {
-        return parent1.collect();
+        return parent1_iter.collect();
     }
 
-    parent1
-        .take(config.crossover_portion)
-        .chain(parent2.skip(config.crossover_portion))
+    // rng.gen_range generates [0, n) so it will never return
+    // parent1.nrows() which would overflow
+    let crossover_portion = rng.gen_range(0, parent1.nrows());
+
+    parent1_iter
+        .take(crossover_portion)
+        .chain(parent2_iter.skip(crossover_portion))
         .collect()
 }
 

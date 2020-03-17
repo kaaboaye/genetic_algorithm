@@ -4,15 +4,11 @@ use crate::population_config::PopulationConfig;
 use crate::scenario::Scenario;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub fn train(input_file: String, population_size: usize) -> DynResult<()> {
-    let conf = PopulationConfig {
-        population_size,
-        tournament_size: 70 * population_size / 100,
-        crossover_portion: 3,
-        crossover_probability: 0.7,
-        mutation_probability: 0.05,
-    };
-
+pub fn train(
+    input_file: String,
+    population_config: PopulationConfig,
+    generation_limit: usize,
+) -> DynResult<()> {
     let ts = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards");
@@ -24,7 +20,7 @@ pub fn train(input_file: String, population_size: usize) -> DynResult<()> {
         .expect("Time went backwards");
     println!("scenario loading {:?}", tp - ts);
 
-    let mut population = Population::new(scenario, conf);
+    let mut population = Population::new(scenario, population_config);
 
     let te = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -33,9 +29,9 @@ pub fn train(input_file: String, population_size: usize) -> DynResult<()> {
 
     let mut results = Vec::new();
 
-    for _ in 0..100 {
+    for _ in 0..generation_limit {
         let best_individual = population.evolve();
-        results.push(best_individual);
+        results.push(best_individual / 1000);
     }
 
     let tf = SystemTime::now()
