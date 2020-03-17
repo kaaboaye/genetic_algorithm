@@ -7,22 +7,35 @@ use na::{DMatrix, DVector};
 use rand::distributions::{Distribution, Uniform};
 use rand::thread_rng;
 use rayon::prelude::*;
+use std::mem::swap;
 
 #[derive(Debug)]
 pub struct Population {
     scenario: Scenario,
-    population: DMatrix<Number>,
     config: PopulationConfig,
     generation_count: usize,
+    population: Box<DMatrix<Number>>,
+    next_population: Box<DMatrix<Number>>,
 }
 
 impl Population {
     pub fn new(scenario: Scenario, config: PopulationConfig) -> Population {
-        let population =
-            generate_random_population(config.population_size, scenario.number_of_objects as usize);
+        let population = Box::new(generate_random_population(
+            config.population_size,
+            scenario.number_of_objects as usize,
+        ));
+
+        // it is save because next_populations is only allocated memory placeholder
+        let next_population = Box::new(unsafe {
+            DMatrix::<Number>::new_uninitialized(
+                config.population_size,
+                scenario.number_of_objects as usize,
+            )
+        });
 
         Population {
             population,
+            next_population,
             scenario,
             config,
             generation_count: 0,
@@ -30,10 +43,18 @@ impl Population {
     }
 
     pub fn evolve(&mut self) -> Number {
-        let (new_population, best_individual) =
-            generate_evolved_population(&self.population, &self.scenario, &self.config);
+        let next_population_slice =
+            // it is save because vector is never resized
+            unsafe { self.next_population.data.as_vec_mut() }.as_mut_slice();
 
-        self.population = new_population;
+        let best_individual = generate_evolved_population(
+            &self.population,
+            next_population_slice,
+            &self.scenario,
+            &self.config,
+        );
+
+        swap(self.population.as_mut(), self.next_population.as_mut());
 
         best_individual
     }
@@ -53,34 +74,32 @@ fn generate_random_population(population_size: usize, number_of_objects: usize) 
 
 fn generate_evolved_population(
     population: &DMatrix<Number>,
+    next_population: &mut [Number],
     scenario: &Scenario,
     population_config: &PopulationConfig,
-) -> (DMatrix<Number>, Number) {
+) -> Number {
     let scores = evaluate_population(population, scenario);
 
     let best_score = *scores.data.as_vec().iter().max().unwrap();
 
-    let new_population = (0..population.nrows())
-        .into_par_iter()
-        .map_init(
+    // chunk population by each individual
+    next_population
+        .chunks_mut(population.ncols())
+        .par_bridge()
+        .for_each_init(
             || thread_rng(),
-            |rng, _| {
+            |rng, child| {
                 let parent1 = tournament(&scores, population_config.tournament_size);
                 let parent2 = tournament(&scores, population_config.tournament_size);
 
                 let parent1 = population.row(parent1);
                 let parent2 = population.row(parent2);
 
-                new_individual(&parent1, &parent2, rng, population_config)
+                new_individual(child, &parent1, &parent2, rng, population_config);
             },
-        )
-        .flatten()
-        .collect();
+        );
 
-    let population =
-        DMatrix::<Number>::from_vec(population.nrows(), population.ncols(), new_population);
-
-    (population, best_score)
+    best_score
 }
 
 fn evaluate_population(population: &DMatrix<Number>, scenario: &Scenario) -> DVector<Number> {
