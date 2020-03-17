@@ -27,8 +27,8 @@ fn crossover(
     rng: &mut ThreadRng,
     config: &PopulationConfig,
 ) -> Vec<Number> {
-    let parent1_iter = parent1.iter().map(|n| *n);
-    let parent2_iter = parent2.iter().map(|n| *n);
+    let parent1_iter = parent1.iter().cloned();
+    let parent2_iter = parent2.iter().cloned();
 
     if config.crossover_probability < rng.gen::<f64>() {
         return parent1_iter.collect();
