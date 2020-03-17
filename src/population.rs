@@ -1,43 +1,41 @@
 use crate::consts::Number;
-use na::{DMatrix, DVector};
-use rand::distributions::{Uniform, Distribution};
-use rand::thread_rng;
-use crate::scenario::Scenario;
-use crossbeam_utils::thread;
-use rayon::prelude::*;
 use crate::individual::new_individual;
 use crate::population_config::PopulationConfig;
+use crate::scenario::Scenario;
+use crossbeam_utils::thread;
+use na::{DMatrix, DVector};
+use rand::distributions::{Distribution, Uniform};
+use rand::thread_rng;
+use rayon::prelude::*;
 
 #[derive(Debug)]
 pub struct Population {
     scenario: Scenario,
     population: DMatrix<Number>,
     config: PopulationConfig,
-    generation_count: usize
+    generation_count: usize,
 }
 
 impl Population {
     pub fn new(scenario: Scenario, config: PopulationConfig) -> Population {
-        let population = generate_random_population(
-            config.population_size,
-            scenario.number_of_objects as usize);
+        let population =
+            generate_random_population(config.population_size, scenario.number_of_objects as usize);
 
         Population {
             population,
             scenario,
             config,
-            generation_count: 0
+            generation_count: 0,
         }
     }
 
-    pub fn evolve(&mut self) {
-        let new_population = generate_evolved_population(
-            &self.population,
-            &self.scenario,
-            &self.config
-        );
+    pub fn evolve(&mut self) -> Number {
+        let (new_population, best_individual) =
+            generate_evolved_population(&self.population, &self.scenario, &self.config);
 
         self.population = new_population;
+
+        best_individual
     }
 }
 
@@ -47,25 +45,20 @@ fn generate_random_population(population_size: usize, number_of_objects: usize) 
 
     let vec = (0..(population_size * number_of_objects))
         .into_par_iter()
-        .map_init(
-            || thread_rng(),
-            |mut rng, _| bool_int.sample(&mut rng),
-        )
+        .map_init(|| thread_rng(), |mut rng, _| bool_int.sample(&mut rng))
         .collect();
 
-    DMatrix::<Number>::from_vec(
-        population_size,
-        number_of_objects,
-        vec,
-    )
+    DMatrix::<Number>::from_vec(population_size, number_of_objects, vec)
 }
 
 fn generate_evolved_population(
     population: &DMatrix<Number>,
     scenario: &Scenario,
     population_config: &PopulationConfig,
-) -> DMatrix<Number> {
+) -> (DMatrix<Number>, Number) {
     let scores = evaluate_population(population, scenario);
+
+    let best_score = *scores.data.as_vec().iter().max().unwrap();
 
     let new_population = (0..population.nrows())
         .into_par_iter()
@@ -84,12 +77,10 @@ fn generate_evolved_population(
         .flatten()
         .collect();
 
+    let population =
+        DMatrix::<Number>::from_vec(population.nrows(), population.ncols(), new_population);
 
-    DMatrix::<Number>::from_vec(
-        population.nrows(),
-        population.ncols(),
-        new_population,
-    )
+    (population, best_score)
 }
 
 fn evaluate_population(population: &DMatrix<Number>, scenario: &Scenario) -> DVector<Number> {
@@ -132,16 +123,14 @@ fn evaluate_population(population: &DMatrix<Number>, scenario: &Scenario) -> DVe
         costs.component_mul_assign(&sizes);
 
         costs
-    }).unwrap()
+    })
+    .unwrap()
 }
 
 /// Selects individual using tournament algorithm
 /// Returns selected individual's index
 fn tournament(scores: &DVector<Number>, tournament_size: usize) -> usize {
-    let mut selector = random_vec(
-        tournament_size,
-        scores.nrows(),
-    );
+    let mut selector = random_vec(tournament_size, scores.nrows());
 
     // Filter selected individuals
     selector.component_mul_assign(scores);
@@ -160,7 +149,11 @@ fn random_vec(desired_positives: usize, size: usize) -> DVector<Number> {
         // In order to avoid large number of collisions create sparse negation and then
         // and then negate the vector back.
         let mut res = sparse_random_vec(size - desired_positives, size);
-        res.par_iter_mut().for_each(|num| *num = *num ^ (1 as Number));
+
+        for num in res.iter_mut() {
+            *num = *num ^ (1 as Number);
+        }
+
         res
     };
 
@@ -199,7 +192,9 @@ fn sparse_random_vec(desired_positives: usize, size: usize) -> Vec<Number> {
 
         res[idx] = 1;
 
-        if positives == desired_positives { break; }
+        if positives == desired_positives {
+            break;
+        }
     }
 
     res

@@ -1,13 +1,13 @@
 use crate::consts::Number;
-use rand::Rng;
-use rand::prelude::ThreadRng;
 use crate::population_config::PopulationConfig;
+use rand::prelude::ThreadRng;
+use rand::Rng;
 
 type Individual<'a> = na::Matrix<
     Number,
     na::U1,
     na::Dynamic,
-    na::SliceStorage<'a, Number, na::U1, na::Dynamic, na::U1, na::Dynamic>
+    na::SliceStorage<'a, Number, na::U1, na::Dynamic, na::U1, na::Dynamic>,
 >;
 
 pub fn new_individual(
@@ -27,6 +27,8 @@ fn crossover(
     rng: &mut ThreadRng,
     config: &PopulationConfig,
 ) -> Vec<Number> {
+    // TODO - losowanie crossover_portion
+
     let parent1 = parent1.iter().map(|n| *n);
     let parent2 = parent2.iter().map(|n| *n);
 

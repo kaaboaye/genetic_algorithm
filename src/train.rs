@@ -1,8 +1,8 @@
-use crate::scenario::Scenario;
 use crate::consts::DynResult;
 use crate::population::Population;
-use std::time::{SystemTime, UNIX_EPOCH};
 use crate::population_config::PopulationConfig;
+use crate::scenario::Scenario;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn train(input_file: String, population_size: usize) -> DynResult<()> {
     let conf = PopulationConfig {
@@ -13,28 +13,37 @@ pub fn train(input_file: String, population_size: usize) -> DynResult<()> {
         mutation_probability: 0.05,
     };
 
-    let ts = SystemTime::now().duration_since(UNIX_EPOCH)
+    let ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
         .expect("Time went backwards");
 
     let scenario = Scenario::load(input_file)?;
 
-
-    let tp = SystemTime::now().duration_since(UNIX_EPOCH)
+    let tp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
         .expect("Time went backwards");
     println!("scenario loading {:?}", tp - ts);
 
-    let population = Population::new(scenario, conf);
+    let mut population = Population::new(scenario, conf);
 
-
-    let te = SystemTime::now().duration_since(UNIX_EPOCH)
+    let te = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
         .expect("Time went backwards");
     println!("population generation {:?}", te - tp);
 
-//    population.evaluate();
+    let mut results = Vec::new();
 
-    let tf = SystemTime::now().duration_since(UNIX_EPOCH)
+    for _ in 0..100 {
+        let best_individual = population.evolve();
+        results.push(best_individual);
+    }
+
+    let tf = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
         .expect("Time went backwards");
     println!("population evaluation {:?}", tf - te);
+
+    println!("{:?}", results);
 
     Ok(())
 }
