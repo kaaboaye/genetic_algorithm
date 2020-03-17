@@ -43,13 +43,9 @@ impl Population {
     }
 
     pub fn evolve(&mut self) -> Number {
-        let next_population_slice =
-            // it is save because vector is never resized
-            unsafe { self.next_population.data.as_vec_mut() }.as_mut_slice();
-
         let best_individual = generate_evolved_population(
             &self.population,
-            next_population_slice,
+            self.next_population.as_mut(),
             &self.scenario,
             &self.config,
         );
@@ -74,16 +70,20 @@ fn generate_random_population(population_size: usize, number_of_objects: usize) 
 
 fn generate_evolved_population(
     population: &DMatrix<Number>,
-    next_population: &mut [Number],
+    next_population: &mut DMatrix<Number>,
     scenario: &Scenario,
     population_config: &PopulationConfig,
 ) -> Number {
+    let next_population_slice =
+            // it is save because vector is never resized
+            unsafe { next_population.data.as_vec_mut() }.as_mut_slice();
+
     let scores = evaluate_population(population, scenario);
 
     let best_score = *scores.data.as_vec().iter().max().unwrap();
 
     // chunk population by each individual
-    next_population
+    next_population_slice
         .chunks_mut(population.ncols())
         .par_bridge()
         .for_each_init(
