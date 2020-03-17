@@ -72,6 +72,13 @@ enum Opt {
             help = "Mutation Probability [float64]. Has to be in range [0, 1]"
         )]
         mutation_probability: f64,
+
+        #[structopt(
+            short,
+            long,
+            help = "Epsilon [float64]. Stops training when changes between generation are smaller then epsilon"
+        )]
+        epsilon: f64,
     },
 
     #[structopt(about = "Loads and prints given scenario")]
@@ -97,6 +104,7 @@ fn main() -> DynResult<()> {
             tournament_size,
             crossover_probability,
             mutation_probability,
+            epsilon,
         } => {
             let population_config = PopulationConfig {
                 population_size,
@@ -104,7 +112,7 @@ fn main() -> DynResult<()> {
                 crossover_probability,
                 mutation_probability,
             };
-            train(input_file, population_config, generation_limit)?
+            train(input_file, population_config, generation_limit, epsilon)?
         }
 
         PrintScenario { input_file } => {

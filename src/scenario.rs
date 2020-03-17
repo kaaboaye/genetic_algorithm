@@ -1,14 +1,17 @@
+use crate::consts::{DynResult, Number};
+use crate::scenario::StrategyLoadError::{
+    HeaderLengthOtherThen3, IncorrectNumberOfObjects, LineLengthOtherThen3, NoHeader,
+    TotalSizeToSmall, TotalWeightToSmall,
+};
 use na::DVector;
-use std::fs::File;
-use std::io::{BufReader, BufRead, Write};
-use crate::consts::{Number, DynResult};
-use std::error::Error;
-use std::result::Result;
-use std::fmt::{Display, Formatter};
-use std::{fmt, io};
-use rand::distributions::{Uniform, Distribution};
+use rand::distributions::{Distribution, Uniform};
 use rand::thread_rng;
-use crate::scenario::StrategyLoadError::{NoHeader, HeaderLengthOtherThen3, LineLengthOtherThen3, IncorrectNumberOfObjects, TotalWeightToSmall, TotalSizeToSmall};
+use std::error::Error;
+use std::fmt::{Display, Formatter};
+use std::fs::File;
+use std::io::{BufRead, BufReader, Write};
+use std::result::Result;
+use std::{fmt, io};
 
 #[derive(Debug)]
 pub struct Scenario {
@@ -21,18 +24,21 @@ pub struct Scenario {
 }
 
 impl Scenario {
-    pub fn generate(number_of_objects: Number, max_weight: Number, max_size: Number, output_file: String)
-                    -> io::Result<()> {
-        println!("Generating for max_weight: {}, max_weight: {}, max_size: {}",
-                 number_of_objects,
-                 max_weight,
-                 max_size);
-
+    pub fn generate(
+        number_of_objects: Number,
+        max_weight: Number,
+        max_size: Number,
+        output_file: String,
+    ) -> io::Result<()> {
+        println!(
+            "Generating for max_weight: {}, max_weight: {}, max_size: {}",
+            number_of_objects, max_weight, max_size
+        );
 
         let mut rng = thread_rng();
 
-        let weights = Uniform::from(1..(5 * max_weight / number_of_objects));
-        let sizes = Uniform::from(1..(5 * max_size / number_of_objects));
+        let weights = Uniform::from(1..(10 * max_weight / number_of_objects));
+        let sizes = Uniform::from(1..(10 * max_size / number_of_objects));
         let costs = Uniform::from(1..number_of_objects);
 
         let mut weight_sum = 0;
@@ -42,8 +48,10 @@ impl Scenario {
             let mut file = File::create(&output_file)?;
 
             // Write header
-            file.write_fmt(format_args!("{},{},{}\n", &number_of_objects, &max_weight, &max_size))?;
-
+            file.write_fmt(format_args!(
+                "{},{},{}\n",
+                &number_of_objects, &max_weight, &max_size
+            ))?;
 
             for _ in 0..number_of_objects {
                 let weight = weights.sample(&mut rng);
@@ -82,7 +90,9 @@ impl Scenario {
             });
 
         let header = lines.next().ok_or(NoHeader)??;
-        if header.len() != 3 { Err(HeaderLengthOtherThen3)? }
+        if header.len() != 3 {
+            Err(HeaderLengthOtherThen3)?
+        }
 
         let (number_of_objects, max_weight, max_size) = (header[0], header[1], header[2]);
 
@@ -92,7 +102,9 @@ impl Scenario {
 
         for line in lines {
             let line = line?;
-            if line.len() != 3 { Err(LineLengthOtherThen3)? }
+            if line.len() != 3 {
+                Err(LineLengthOtherThen3)?
+            }
 
             weights.push(line[0]);
             sizes.push(line[1]);
@@ -100,27 +112,42 @@ impl Scenario {
         }
 
         if weights.len() != number_of_objects as usize {
-            Err(IncorrectNumberOfObjects { declared: number_of_objects, actual: weights.len() })?
+            Err(IncorrectNumberOfObjects {
+                declared: number_of_objects,
+                actual: weights.len(),
+            })?
         }
 
         let total_weight = weights.iter().sum();
         if total_weight <= 2 * max_weight {
-            Err(TotalWeightToSmall { minimal: 2 * max_weight, total_weight })?
+            Err(TotalWeightToSmall {
+                minimal: 2 * max_weight,
+                total_weight,
+            })?
         }
 
         let total_size = sizes.iter().sum();
         if total_size <= 2 * max_size {
-            Err(TotalSizeToSmall { minimal: 2 * max_size, total_size })?
+            Err(TotalSizeToSmall {
+                minimal: 2 * max_size,
+                total_size,
+            })?
         }
 
         let weights = DVector::from_vec(weights);
         let sizes = DVector::from_vec(sizes);
         let costs = DVector::from_vec(costs);
 
-        Ok(Scenario { number_of_objects, max_weight, max_size, weights, sizes, costs })
+        Ok(Scenario {
+            number_of_objects,
+            max_weight,
+            max_size,
+            weights,
+            sizes,
+            costs,
+        })
     }
 }
-
 
 #[derive(Debug)]
 pub enum StrategyLoadError {

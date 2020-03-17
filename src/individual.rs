@@ -27,8 +27,6 @@ fn crossover(
     rng: &mut ThreadRng,
     config: &PopulationConfig,
 ) -> Vec<Number> {
-    // TODO - losowanie crossover_portion
-
     let parent1_iter = parent1.iter().map(|n| *n);
     let parent2_iter = parent2.iter().map(|n| *n);
 
