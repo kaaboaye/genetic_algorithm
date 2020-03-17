@@ -5,14 +5,12 @@ extern crate rand;
 extern crate rayon;
 
 mod consts;
-mod individual;
 mod population;
-mod population_config;
 mod scenario;
 mod train;
 
 use crate::consts::{DynResult, Number};
-use crate::population_config::PopulationConfig;
+use crate::population::config::Config as PopulationConfig;
 use crate::scenario::Scenario;
 use crate::Opt::{Generate, PrintScenario, Train};
 use structopt::StructOpt;

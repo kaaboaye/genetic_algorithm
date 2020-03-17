@@ -1,5 +1,5 @@
 use crate::consts::Number;
-use crate::population_config::PopulationConfig;
+use crate::population::config::Config;
 use rand::prelude::ThreadRng;
 use rand::Rng;
 
@@ -15,7 +15,7 @@ pub fn new_individual(
     parent1: &Individual,
     parent2: &Individual,
     rng: &mut ThreadRng,
-    config: &PopulationConfig,
+    config: &Config,
 ) {
     crossover(child, parent1, parent2, rng, config);
     mutate(child, rng, config);
@@ -26,7 +26,7 @@ fn crossover(
     parent1: &Individual,
     parent2: &Individual,
     rng: &mut ThreadRng,
-    config: &PopulationConfig,
+    config: &Config,
 ) {
     let parent1_iter = parent1.iter().cloned();
     let parent2_iter = parent2.iter().cloned();
@@ -52,7 +52,7 @@ fn crossover(
     }
 }
 
-fn mutate(individual: &mut [Number], rng: &mut ThreadRng, config: &PopulationConfig) {
+fn mutate(individual: &mut [Number], rng: &mut ThreadRng, config: &Config) {
     for gen in individual.iter_mut() {
         *gen = *gen ^ (config.mutation_probability >= rng.gen::<f64>()) as Number;
     }

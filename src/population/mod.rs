@@ -1,6 +1,9 @@
+pub mod config;
+mod individual;
+
 use crate::consts::Number;
-use crate::individual::new_individual;
-use crate::population_config::PopulationConfig;
+use crate::population::config::Config;
+use crate::population::individual::new_individual;
 use crate::scenario::Scenario;
 use crossbeam_utils::thread;
 use na::{DMatrix, DVector};
@@ -12,14 +15,22 @@ use std::mem::swap;
 #[derive(Debug)]
 pub struct Population {
     scenario: Scenario,
-    config: PopulationConfig,
+    config: Config,
     generation_count: usize,
+    // evaluation_arena: EvaluationArena,
     population: Box<DMatrix<Number>>,
     next_population: Box<DMatrix<Number>>,
 }
 
+#[derive(Debug)]
+struct EvaluationArena {
+    weights: DVector<Number>,
+    sizes: DVector<Number>,
+    costs: DVector<Number>,
+}
+
 impl Population {
-    pub fn new(scenario: Scenario, config: PopulationConfig) -> Population {
+    pub fn new(scenario: Scenario, config: Config) -> Population {
         let population = Box::new(generate_random_population(
             config.population_size,
             scenario.number_of_objects as usize,
@@ -72,7 +83,7 @@ fn generate_evolved_population(
     population: &DMatrix<Number>,
     next_population: &mut DMatrix<Number>,
     scenario: &Scenario,
-    population_config: &PopulationConfig,
+    population_config: &Config,
 ) -> Number {
     let next_population_slice =
             // it is save because vector is never resized
@@ -102,7 +113,11 @@ fn generate_evolved_population(
     best_score
 }
 
-fn evaluate_population(population: &DMatrix<Number>, scenario: &Scenario) -> DVector<Number> {
+fn evaluate_population(
+    // arena: EvaluationArena,
+    population: &DMatrix<Number>,
+    scenario: &Scenario,
+) -> DVector<Number> {
     thread::scope(|scope| {
         let weights_thread = scope.spawn(|_| {
             // calculate weights for population individuals

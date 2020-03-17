@@ -1,7 +1,7 @@
 use crate::consts::DynResult;
 use crate::consts::Number;
+use crate::population::config::Config as PopulationConfig;
 use crate::population::Population;
-use crate::population_config::PopulationConfig;
 use crate::scenario::Scenario;
 use std::time::{SystemTime, UNIX_EPOCH};
 
