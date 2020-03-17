@@ -35,7 +35,12 @@ pub fn train(
 
     for _ in 0..generation_limit {
         let best_individual = population.evolve();
-        results.push(best_individual / 1000);
+
+        results.push(if best_individual >= 1000 {
+            (best_individual / 1000) as f64
+        } else {
+            best_individual as f64 / 1000.0
+        });
 
         let delta =
             ((best_individual - previous_best_individual) as f64).abs() / best_individual as f64;

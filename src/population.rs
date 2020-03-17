@@ -144,8 +144,17 @@ fn tournament(scores: &DVector<Number>, tournament_size: usize) -> usize {
 /// It assumes that `desired_positives` is greater then 0.
 fn random_vec(desired_positives: usize, size: usize) -> DVector<Number> {
     let res = if desired_positives <= size / 2 {
+        // generate sparse vector
         sparse_random_vec(desired_positives, size)
+    } else if desired_positives == 0 {
+        // fast path for vector full of 0
+        vec![0; size]
+    } else if desired_positives == size {
+        // fast path for vector full of 1
+        vec![1; size]
     } else {
+        // generate dense vector
+        //
         // In order to avoid large number of collisions create sparse negation and then
         // and then negate the vector back.
         let mut res = sparse_random_vec(size - desired_positives, size);
@@ -161,6 +170,8 @@ fn random_vec(desired_positives: usize, size: usize) -> DVector<Number> {
 }
 
 fn sparse_random_vec(desired_positives: usize, size: usize) -> Vec<Number> {
+    // setting desired positions to zero will cause and infinite loop
+    // use vec![0, size] instead
     debug_assert_ne!(desired_positives, 0);
 
     let mut rng = thread_rng();
