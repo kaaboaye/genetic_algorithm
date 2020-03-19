@@ -6,7 +6,7 @@ use rand::prelude::thread_rng;
 /// Returns DVector of zeros and ones.
 /// It will contain randomly distributed `desired_positives` of ones (1).
 /// The rest of values will be 0.
-pub fn random_vec(desired_positives: usize, size: usize) -> DVector<Number> {
+pub fn random_vector(desired_positives: usize, size: usize) -> DVector<Number> {
   let res = if desired_positives == 0 {
     // fast path for vector full of 0
     vec![0; size]
@@ -74,7 +74,7 @@ mod tests {
 
   #[test]
   fn random_vec_generates_empty_vec() {
-    let res = random_vec(0, 10);
+    let res = random_vector(0, 10);
     // assert size
     assert_eq!(res.ncols(), 1);
     assert_eq!(res.nrows(), 10);
@@ -84,7 +84,7 @@ mod tests {
 
   #[test]
   fn random_vec_generates_full_vec() {
-    let res = random_vec(10, 10);
+    let res = random_vector(10, 10);
     // assert size
     assert_eq!(res.ncols(), 1);
     assert_eq!(res.nrows(), 10);
@@ -96,7 +96,7 @@ mod tests {
   fn random_vec_generates_sparse_vec() {
     // since its a random function repeat it 100 times
     for _ in 0..100 {
-      let res = random_vec(2, 10);
+      let res = random_vector(2, 10);
       // assert size
       assert_eq!(res.ncols(), 1);
       assert_eq!(res.nrows(), 10);
@@ -109,7 +109,7 @@ mod tests {
   fn random_vec_generates_dense_vec() {
     // since its a random function repeat it 100 times
     for _ in 0..100 {
-      let res = random_vec(8, 10);
+      let res = random_vector(8, 10);
       // assert size
       assert_eq!(res.ncols(), 1);
       assert_eq!(res.nrows(), 10);

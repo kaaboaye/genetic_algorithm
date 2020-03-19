@@ -5,7 +5,7 @@ mod random_vec;
 use crate::consts::Number;
 use crate::population::config::Config;
 use crate::population::individual::new_individual;
-use crate::population::random_vec::random_vec;
+use crate::population::random_vec::random_vector;
 use crate::scenario::Scenario;
 use crossbeam_utils::thread;
 use na::{DMatrix, DVector};
@@ -193,7 +193,7 @@ fn tournament(scores: &DVector<Number>, tournament_size: usize) -> usize {
     // Creates a random vector of {0, 1} and multiplies value by score.
     // Them finds the best value and returns index of chosen individual.
 
-    let mut selector = random_vec(tournament_size, scores.nrows());
+    let mut selector = random_vector(tournament_size, scores.nrows());
 
     // Filter selected individuals
     selector.component_mul_assign(scores);
