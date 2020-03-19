@@ -17,7 +17,6 @@ pub struct Population {
     scenario: Scenario,
     config: Config,
     generation_count: usize,
-    // evaluation_arena: EvaluationArena,
     population: Box<DMatrix<Number>>,
     next_population: Box<DMatrix<Number>>,
 }
@@ -113,11 +112,7 @@ fn generate_evolved_population(
     best_score
 }
 
-fn evaluate_population(
-    // arena: EvaluationArena,
-    population: &DMatrix<Number>,
-    scenario: &Scenario,
-) -> DVector<Number> {
+fn evaluate_population(population: &DMatrix<Number>, scenario: &Scenario) -> DVector<Number> {
     thread::scope(|scope| {
         let weights_thread = scope.spawn(|_| {
             // calculate weights for population individuals
