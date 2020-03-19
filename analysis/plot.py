@@ -1,9 +1,6 @@
 from glob import glob
 import matplotlib.pyplot as plot
 import numpy as np
-import matplotlib
-
-# matplotlib.interactive(True)
 
 
 def read_file(filename):
@@ -48,7 +45,13 @@ def main():
 
         plot.plot(results, label=param)
 
+    plot.xlabel("Generation")
+    plot.ylabel("Best individual")
     plot.legend(loc='lower right')
+    plot.tight_layout()
+    plot.ylim(ymin=0)
+    plot.xlim(xmin=0)
+    plot.xticks(range(0, 20, 5))
     plot.show()
 
 
