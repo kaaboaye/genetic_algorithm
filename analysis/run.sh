@@ -10,13 +10,13 @@ SCENARIO='../scenario.txt'
 
 rm `ls res* 2> /dev/null` 2> /dev/null || echo -n
 
-for population_size in `echo 100 250 500 1000 10000`; do
+for population_size in `echo 10 25 50 75 100`; do
     for iteration in `seq 1 10`; do
         # population_size=500
         
         $GENET train $SCENARIO \
         --crossover-probability 0.85 \
-        --generation-limit 1000 \
+        --generation-limit 100 \
         --mutation-probability 0.003 \
         --population-size $population_size \
         --tournament-size $(($population_size * 20 / 100)) \

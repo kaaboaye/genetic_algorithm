@@ -17,6 +17,7 @@ type Individual<'a> = na::Matrix<
     na::SliceStorage<'a, Number, na::U1, na::Dynamic, na::U1, na::Dynamic>,
 >;
 
+/// Creates new individual and stores it into `child` parameter
 pub fn new_individual(
     child: &mut MutIndividual,
     parent1: &Individual,
@@ -28,6 +29,14 @@ pub fn new_individual(
     mutate(child, rng, config);
 }
 
+/// Crossover
+///
+/// If parents will be able to replicate it will chose a random number
+/// of genes to take form the beginning of `parent1` and the rest will
+/// be filled with genes coming from `parent2`.
+///
+/// If parents are not able to replicate it will copy `parent1` into
+/// the child.
 fn crossover(
     child: &mut MutIndividual,
     parent1: &Individual,
@@ -59,6 +68,9 @@ fn crossover(
     }
 }
 
+/// Mutation
+///
+/// It will try to mutate each gen of the `child`.
 fn mutate(individual: &mut MutIndividual, rng: &mut ThreadRng, config: &Config) {
     for gen in individual.iter_mut() {
         *gen = *gen ^ (config.mutation_probability >= rng.gen::<f64>()) as Number;

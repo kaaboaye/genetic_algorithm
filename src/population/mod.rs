@@ -1,9 +1,11 @@
 pub mod config;
 mod individual;
+mod random_vec;
 
 use crate::consts::Number;
 use crate::population::config::Config;
 use crate::population::individual::new_individual;
+use crate::population::random_vec::random_vec;
 use crate::scenario::Scenario;
 use crossbeam_utils::thread;
 use na::{DMatrix, DVector};
@@ -16,9 +18,8 @@ use std::mem::swap;
 pub struct Population {
     scenario: Scenario,
     config: Config,
-    generation_count: usize,
-    population: Box<DMatrix<Number>>,
-    next_population: Box<DMatrix<Number>>,
+    population: DMatrix<Number>,
+    next_population: DMatrix<Number>,
 }
 
 #[derive(Debug)]
@@ -30,37 +31,40 @@ struct EvaluationArena {
 
 impl Population {
     pub fn new(scenario: Scenario, config: Config) -> Population {
-        let population = Box::new(generate_random_population(
-            config.population_size,
-            scenario.number_of_objects as usize,
-        ));
+        let population =
+            generate_random_population(config.population_size, scenario.number_of_objects as usize);
 
         // it is save because next_populations is only allocated memory placeholder
-        let next_population = Box::new(unsafe {
+        let next_population = unsafe {
             DMatrix::<Number>::new_uninitialized(
                 config.population_size,
                 scenario.number_of_objects as usize,
             )
-        });
+        };
 
         Population {
             population,
             next_population,
             scenario,
             config,
-            generation_count: 0,
         }
     }
 
     pub fn evolve(&mut self) -> Number {
-        let best_individual = generate_evolved_population(
+        let best_individual = evolve_population(
             &self.population,
-            self.next_population.as_mut(),
+            &mut self.next_population,
             &self.scenario,
             &self.config,
         );
 
-        swap(self.population.as_mut(), self.next_population.as_mut());
+        // it is save because both matrices have the same size
+        unsafe {
+            swap(
+                self.population.data.as_vec_mut(),
+                self.next_population.data.as_vec_mut(),
+            );
+        }
 
         best_individual
     }
@@ -68,12 +72,18 @@ impl Population {
 
 /// Generates and returns random population of given size
 fn generate_random_population(population_size: usize, number_of_objects: usize) -> DMatrix<Number> {
+    // It creates a vector containing genes for feature population.
+    // This vector is being created using multiple threads.
+
     let bool_int = Uniform::from(0..11 as Number);
 
     let vec = (0..(population_size * number_of_objects))
+        // creates a parallel iterator
         .into_par_iter()
         .map_init(
+            // initializes state for each thread
             || thread_rng(),
+            // evaluates value for each gene
             |mut rng, _| (bool_int.sample(&mut rng) == 1) as Number,
         )
         .collect();
@@ -81,7 +91,10 @@ fn generate_random_population(population_size: usize, number_of_objects: usize) 
     DMatrix::<Number>::from_vec(population_size, number_of_objects, vec)
 }
 
-fn generate_evolved_population(
+/// Evolves population and stores the result in `next_population`.
+///
+/// Returns the `best_score` before the evolution.
+fn evolve_population(
     population: &DMatrix<Number>,
     next_population: &mut DMatrix<Number>,
     scenario: &Scenario,
@@ -112,7 +125,24 @@ fn generate_evolved_population(
     best_score
 }
 
+/// Evaluates the population
+///
+/// Returns a vector of scores
 fn evaluate_population(population: &DMatrix<Number>, scenario: &Scenario) -> DVector<Number> {
+    // This function evaluates population using 3 independent threads.
+    //
+    // The first one calculates weights for each individual and checks the requirements.
+    // Returns a boolean vector indicating whether given which individuals
+    // are fulfilling the requirements.
+    //
+    // The second one calculates sizes and also checks the requirements. And also returns
+    // a boolean vector.
+    //
+    // And the last one calculates costs. Returns a vector indicating cost of each individual
+    // in the population.
+    //
+    // After all 3 threads join costs are filtered using weight and size boolean vectors.
+
     thread::scope(|scope| {
         let weights_thread = scope.spawn(|_| {
             // calculate weights for population individuals
@@ -148,6 +178,7 @@ fn evaluate_population(population: &DMatrix<Number>, scenario: &Scenario) -> DVe
         let sizes = sizes_thread.join().unwrap();
         let mut costs = costs_thread.join().unwrap();
 
+        // Filter out individuals not meeting the requirements.
         costs.component_mul_assign(&weights);
         costs.component_mul_assign(&sizes);
 
@@ -159,126 +190,13 @@ fn evaluate_population(population: &DMatrix<Number>, scenario: &Scenario) -> DVe
 /// Selects individual using tournament algorithm
 /// Returns selected individual's index
 fn tournament(scores: &DVector<Number>, tournament_size: usize) -> usize {
+    // Creates a random vector of {0, 1} and multiplies value by score.
+    // Them finds the best value and returns index of chosen individual.
+
     let mut selector = random_vec(tournament_size, scores.nrows());
 
     // Filter selected individuals
     selector.component_mul_assign(scores);
     let (best_idx, _) = selector.argmax();
     best_idx
-}
-
-/// Returns DVector of zeros and ones.
-/// It will contain randomly distributed `desired_positives` of ones (1).
-/// The rest of values will be 0.
-fn random_vec(desired_positives: usize, size: usize) -> DVector<Number> {
-    let res = if desired_positives == 0 {
-        // fast path for vector full of 0
-        vec![0; size]
-    } else if desired_positives == size {
-        // fast path for vector full of 1
-        vec![1; size]
-    } else if desired_positives <= size / 2 {
-        // generate sparse vector
-        sparse_random_vec(desired_positives, size)
-    } else {
-        // generate dense vector
-        //
-        // In order to avoid large number of collisions create sparse negation and then
-        // and then negate the vector back.
-        let mut res = sparse_random_vec(size - desired_positives, size);
-
-        for num in res.iter_mut() {
-            *num = *num ^ (1 as Number);
-        }
-
-        res
-    };
-
-    DVector::<Number>::from_vec(res)
-}
-
-fn sparse_random_vec(desired_positives: usize, size: usize) -> Vec<Number> {
-    // setting desired positions to zero will cause and infinite loop
-    // use vec![0, size] instead
-    debug_assert_ne!(desired_positives, 0);
-
-    let mut rng = thread_rng();
-    let mut res: Vec<Number> = vec![0; size];
-    let mut positives: usize = 0;
-
-    let slots = Uniform::from(0..size);
-
-    loop {
-        let idx = slots.sample(&mut rng);
-
-        // It will always increment the number of positives at first
-        // then it will subtract value of given position.
-        //
-        // This subtraction handles collisions.
-        //
-        // It is equivalent to
-        // `if res[idx] == 0 { positives += 1 }`
-        // but this is faster because no branching is happening in this implementation.
-        positives += 1;
-        positives -= res[idx] as usize;
-
-        res[idx] = 1;
-
-        if positives == desired_positives {
-            break;
-        }
-    }
-
-    res
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn random_vec_generates_empty_vec() {
-        let res = random_vec(0, 10);
-        // assert size
-        assert_eq!(res.ncols(), 1);
-        assert_eq!(res.nrows(), 10);
-        // assert number of positives
-        assert_eq!(res.data.as_vec().iter().filter(|x| **x == 1).count(), 0);
-    }
-
-    #[test]
-    fn random_vec_generates_full_vec() {
-        let res = random_vec(10, 10);
-        // assert size
-        assert_eq!(res.ncols(), 1);
-        assert_eq!(res.nrows(), 10);
-        // assert number of positives
-        assert_eq!(res.data.as_vec().iter().filter(|x| **x == 1).count(), 10);
-    }
-
-    #[test]
-    fn random_vec_generates_sparse_vec() {
-        // since its a random function repeat it 100 times
-        for _ in 0..100 {
-            let res = random_vec(2, 10);
-            // assert size
-            assert_eq!(res.ncols(), 1);
-            assert_eq!(res.nrows(), 10);
-            // assert number of positives
-            assert_eq!(res.data.as_vec().iter().filter(|x| **x == 1).count(), 2);
-        }
-    }
-
-    #[test]
-    fn random_vec_generates_dense_vec() {
-        // since its a random function repeat it 100 times
-        for _ in 0..100 {
-            let res = random_vec(8, 10);
-            // assert size
-            assert_eq!(res.ncols(), 1);
-            assert_eq!(res.nrows(), 10);
-            // assert number of positives
-            assert_eq!(res.data.as_vec().iter().filter(|x| **x == 1).count(), 8);
-        }
-    }
 }
