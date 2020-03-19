@@ -170,7 +170,6 @@ fn tournament(scores: &DVector<Number>, tournament_size: usize) -> usize {
 /// Returns DVector of zeros and ones.
 /// It will contain randomly distributed `desired_positives` of ones (1).
 /// The rest of values will be 0.
-/// It assumes that `desired_positives` is greater then 0.
 fn random_vec(desired_positives: usize, size: usize) -> DVector<Number> {
     let res = if desired_positives == 0 {
         // fast path for vector full of 0
@@ -212,21 +211,14 @@ fn sparse_random_vec(desired_positives: usize, size: usize) -> Vec<Number> {
     loop {
         let idx = slots.sample(&mut rng);
 
-        // If position is already chosen it will subtract 1
-        // which will be added back later.
-        // If position was not used before it will subtract 0
-        // which later will be incremented by 1 increasing
-        // the total number of selected slots.
+        // It will always increment the number of positives at first
+        // then it will subtract value of given position.
+        //
+        // This subtraction handles collisions.
         //
         // It is equivalent to
         // `if res[idx] == 0 { positives += 1 }`
-        // but this will be faster because no branching is happening in this implementation.
-        //
-        // Since it operates on unsigned number it takes an assumption that
-        // `positives -= res[idx]` will never produce a negative result.
-        // This assumption is true because `positives` has to have at least value of `1`
-        // in order to some conflict to occur.
-        // In other words positives cannot find duplicate if there are no positive values.
+        // but this is faster because no branching is happening in this implementation.
         positives += 1;
         positives -= res[idx] as usize;
 
