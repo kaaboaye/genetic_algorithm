@@ -1,11 +1,11 @@
 pub mod config;
 mod individual;
-mod random_vec;
+mod random_vector;
 
 use crate::consts::Number;
 use crate::population::config::Config;
 use crate::population::individual::new_individual;
-use crate::population::random_vec::random_vector;
+use crate::population::random_vector::random_vector;
 use crate::scenario::Scenario;
 use crossbeam_utils::thread;
 use na::{DMatrix, DVector};
