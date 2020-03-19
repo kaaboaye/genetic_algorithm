@@ -12,7 +12,7 @@ pub fn train(
     result_file: Option<String>,
     population_config: PopulationConfig,
     generation_limit: usize,
-    epsilon: f64,
+    epsilon: Option<f64>,
 ) -> DynResult<()> {
     let ts = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -24,6 +24,8 @@ pub fn train(
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards");
     println!("Scenario loading {:?}", tp - ts);
+
+    println!("{:?}", &population_config);
 
     let mut population = Population::new(scenario, population_config);
 
@@ -46,8 +48,10 @@ pub fn train(
 
         previous_best_individual = best_individual;
 
-        if delta <= epsilon {
-            break;
+        if let Some(epsilon) = epsilon {
+            if delta <= epsilon {
+                break;
+            }
         }
     }
 
@@ -68,6 +72,8 @@ pub fn train(
     } else {
         println!("{:?}", results);
     }
+
+    println!("Result {}", results.last().unwrap());
 
     Ok(())
 }

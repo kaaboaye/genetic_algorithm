@@ -3,6 +3,13 @@ use crate::population::config::Config;
 use rand::prelude::ThreadRng;
 use rand::Rng;
 
+type MutIndividual<'a> = na::Matrix<
+    Number,
+    na::U1,
+    na::Dynamic,
+    na::SliceStorageMut<'a, Number, na::U1, na::Dynamic, na::U1, na::Dynamic>,
+>;
+
 type Individual<'a> = na::Matrix<
     Number,
     na::U1,
@@ -11,7 +18,7 @@ type Individual<'a> = na::Matrix<
 >;
 
 pub fn new_individual(
-    child: &mut [Number],
+    child: &mut MutIndividual,
     parent1: &Individual,
     parent2: &Individual,
     rng: &mut ThreadRng,
@@ -22,7 +29,7 @@ pub fn new_individual(
 }
 
 fn crossover(
-    child: &mut [Number],
+    child: &mut MutIndividual,
     parent1: &Individual,
     parent2: &Individual,
     rng: &mut ThreadRng,
@@ -52,7 +59,7 @@ fn crossover(
     }
 }
 
-fn mutate(individual: &mut [Number], rng: &mut ThreadRng, config: &Config) {
+fn mutate(individual: &mut MutIndividual, rng: &mut ThreadRng, config: &Config) {
     for gen in individual.iter_mut() {
         *gen = *gen ^ (config.mutation_probability >= rng.gen::<f64>()) as Number;
     }

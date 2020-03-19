@@ -51,7 +51,6 @@ def main():
     plot.tight_layout()
     plot.ylim(ymin=0)
     plot.xlim(xmin=0)
-    plot.xticks(range(0, 20, 5))
     plot.show()
 
 

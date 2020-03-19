@@ -80,7 +80,7 @@ enum Opt {
             long,
             help = "Epsilon [float64]. Stops training when changes between generation are smaller then epsilon"
         )]
-        epsilon: f64,
+        epsilon: Option<f64>,
     },
 
     #[structopt(about = "Loads and prints given scenario")]

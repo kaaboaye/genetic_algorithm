@@ -69,11 +69,14 @@ impl Population {
 
 /// Generates and returns random population of given size
 fn generate_random_population(population_size: usize, number_of_objects: usize) -> DMatrix<Number> {
-    let bool_int = Uniform::from(0..2 as Number);
+    let bool_int = Uniform::from(0..11 as Number);
 
     let vec = (0..(population_size * number_of_objects))
         .into_par_iter()
-        .map_init(|| thread_rng(), |mut rng, _| bool_int.sample(&mut rng))
+        .map_init(
+            || thread_rng(),
+            |mut rng, _| (bool_int.sample(&mut rng) == 1) as Number,
+        )
         .collect();
 
     DMatrix::<Number>::from_vec(population_size, number_of_objects, vec)
@@ -85,28 +88,25 @@ fn generate_evolved_population(
     scenario: &Scenario,
     population_config: &Config,
 ) -> Number {
-    let next_population_slice =
-            // it is save because vector is never resized
-            unsafe { next_population.data.as_vec_mut() }.as_mut_slice();
-
     let scores = evaluate_population(population, scenario);
 
     let best_score = *scores.data.as_vec().par_iter().max().unwrap();
 
     // chunk population by each individual
-    next_population_slice
-        .chunks_mut(population.ncols())
-        .par_bridge()
+    next_population
+        .row_iter_mut()
+        .collect::<Vec<_>>()
+        .par_iter_mut()
         .for_each_init(
             || thread_rng(),
-            |rng, child| {
+            |rng, mut child| {
                 let parent1 = tournament(&scores, population_config.tournament_size);
                 let parent2 = tournament(&scores, population_config.tournament_size);
 
                 let parent1 = population.row(parent1);
                 let parent2 = population.row(parent2);
 
-                new_individual(child, &parent1, &parent2, rng, population_config);
+                new_individual(&mut child, &parent1, &parent2, rng, population_config);
             },
         );
 
