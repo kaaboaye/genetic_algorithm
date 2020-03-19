@@ -43,6 +43,11 @@ enum Opt {
         #[structopt(help = "Input file")]
         input_file: String,
 
+        #[structopt(
+            help = "File to which best individuals from each generation will be saved. If no such file is provided result will be printed out"
+        )]
+        result_file: Option<String>,
+
         #[structopt(short = "l", long, help = "Generation Limit [usize]")]
         generation_limit: usize,
 
@@ -96,6 +101,7 @@ fn main() -> DynResult<()> {
 
         Train {
             input_file,
+            result_file,
             generation_limit,
             population_size,
             tournament_size,
@@ -109,7 +115,13 @@ fn main() -> DynResult<()> {
                 crossover_probability,
                 mutation_probability,
             };
-            train(input_file, population_config, generation_limit, epsilon)?
+            train(
+                input_file,
+                result_file,
+                population_config,
+                generation_limit,
+                epsilon,
+            )?
         }
 
         PrintScenario { input_file } => {

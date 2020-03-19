@@ -3,10 +3,13 @@ use crate::consts::Number;
 use crate::population::config::Config as PopulationConfig;
 use crate::population::Population;
 use crate::scenario::Scenario;
+use std::fs::File;
+use std::io::Write;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub fn train(
     input_file: String,
+    result_file: Option<String>,
     population_config: PopulationConfig,
     generation_limit: usize,
     epsilon: f64,
@@ -36,7 +39,7 @@ pub fn train(
     for _ in 0..generation_limit {
         let best_individual = population.evolve();
 
-        results.push(best_individual / 1000);
+        results.push(best_individual);
 
         let delta =
             ((best_individual - previous_best_individual) as f64).abs() / best_individual as f64;
@@ -53,7 +56,18 @@ pub fn train(
         .expect("Time went backwards");
     println!("Population evolution {:?}", tf - te);
 
-    println!("{:?}", results);
+    if let Some(result_file) = result_file {
+        let results = results
+            .iter()
+            .map(|x| x.to_string())
+            .collect::<Vec<String>>()
+            .join("\n");
+
+        let mut file = File::create(&result_file)?;
+        file.write(results.as_bytes())?;
+    } else {
+        println!("{:?}", results);
+    }
 
     Ok(())
 }
