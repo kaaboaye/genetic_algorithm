@@ -8,6 +8,8 @@ LC_NUMERIC=en_US.UTF-8
 GENET='../target/release/genet'
 SCENARIO='../scenario.txt'
 
+rm `ls res*`
+
 for param in `seq 0.25 0.25 0.75`; do
     for iteration in `seq 1 10`; do
         $GENET train $SCENARIO \
