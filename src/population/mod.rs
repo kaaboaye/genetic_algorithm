@@ -91,7 +91,7 @@ fn generate_evolved_population(
 
     let scores = evaluate_population(population, scenario);
 
-    let best_score = *scores.data.as_vec().iter().max().unwrap();
+    let best_score = *scores.data.as_vec().par_iter().max().unwrap();
 
     // chunk population by each individual
     next_population_slice
