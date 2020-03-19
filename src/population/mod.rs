@@ -231,3 +231,54 @@ fn sparse_random_vec(desired_positives: usize, size: usize) -> Vec<Number> {
 
     res
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn random_vec_generates_empty_vec() {
+        let res = random_vec(0, 10);
+        // assert size
+        assert_eq!(res.ncols(), 1);
+        assert_eq!(res.nrows(), 10);
+        // assert number of positives
+        assert_eq!(res.data.as_vec().iter().filter(|x| **x == 1).count(), 0);
+    }
+
+    #[test]
+    fn random_vec_generates_full_vec() {
+        let res = random_vec(10, 10);
+        // assert size
+        assert_eq!(res.ncols(), 1);
+        assert_eq!(res.nrows(), 10);
+        // assert number of positives
+        assert_eq!(res.data.as_vec().iter().filter(|x| **x == 1).count(), 10);
+    }
+
+    #[test]
+    fn random_vec_generates_sparse_vec() {
+        // since its a random function repeat it 100 times
+        for _ in 0..100 {
+            let res = random_vec(2, 10);
+            // assert size
+            assert_eq!(res.ncols(), 1);
+            assert_eq!(res.nrows(), 10);
+            // assert number of positives
+            assert_eq!(res.data.as_vec().iter().filter(|x| **x == 1).count(), 2);
+        }
+    }
+
+    #[test]
+    fn random_vec_generates_dense_vec() {
+        // since its a random function repeat it 100 times
+        for _ in 0..100 {
+            let res = random_vec(8, 10);
+            // assert size
+            assert_eq!(res.ncols(), 1);
+            assert_eq!(res.nrows(), 10);
+            // assert number of positives
+            assert_eq!(res.data.as_vec().iter().filter(|x| **x == 1).count(), 8);
+        }
+    }
+}
