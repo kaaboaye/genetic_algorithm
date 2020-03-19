@@ -177,15 +177,15 @@ fn tournament(scores: &DVector<Number>, tournament_size: usize) -> usize {
 /// The rest of values will be 0.
 /// It assumes that `desired_positives` is greater then 0.
 fn random_vec(desired_positives: usize, size: usize) -> DVector<Number> {
-    let res = if desired_positives <= size / 2 {
-        // generate sparse vector
-        sparse_random_vec(desired_positives, size)
-    } else if desired_positives == 0 {
+    let res = if desired_positives == 0 {
         // fast path for vector full of 0
         vec![0; size]
     } else if desired_positives == size {
         // fast path for vector full of 1
         vec![1; size]
+    } else if desired_positives <= size / 2 {
+        // generate sparse vector
+        sparse_random_vec(desired_positives, size)
     } else {
         // generate dense vector
         //
